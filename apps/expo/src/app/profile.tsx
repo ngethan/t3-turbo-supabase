@@ -3,32 +3,34 @@ import { Alert, Pressable, Text, TextInput, View } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Link, router } from "expo-router";
 import { AntDesign } from "@expo/vector-icons";
-import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
+import { User } from "@supabase/supabase-js";
 
+import { supabase } from "@/lib/supabase";
 import { initiateAppleSignIn } from "@/utils/auth";
 
-export default function Profile() {
+export default async function Profile() {
   // If the page was reloaded or navigated to directly, then the modal should be presented as
   // a full screen page. You may need to change the UI to account for this.
   const isPresented = router.canGoBack();
 
-  const user = useUser();
+  const user = await supabase.auth.getUser();
 
   return (
     <View className="flex-1 p-4">
       {!isPresented && <Link href="../">Dismiss</Link>}
-      {user ? <SignedInView /> : <SignedOutView />}
+      {user.data.user ? (
+        <SignedInView user={user.data.user} />
+      ) : (
+        <SignedOutView />
+      )}
     </View>
   );
 }
 
-function SignedInView() {
-  const supabase = useSupabaseClient();
-  const user = useUser();
-
+function SignedInView({ user }: { user: User }) {
   return (
     <View className="flex gap-4">
-      <Text className="text-zinc-200">Signed in as {user?.email}</Text>
+      <Text className="text-zinc-200">Signed in as {user.email}</Text>
       <Pressable
         onPress={() => supabase.auth.signOut()}
         className="flex-row items-center justify-center gap-2 rounded-lg bg-zinc-200 p-2"
@@ -40,8 +42,6 @@ function SignedInView() {
 }
 
 function SignedOutView() {
-  const supabase = useSupabaseClient();
-
   const signInWithApple = async () => {
     try {
       const { token, nonce } = await initiateAppleSignIn();
@@ -90,8 +90,6 @@ function SignedOutView() {
 }
 
 function EmailForm() {
-  const supabase = useSupabaseClient();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
